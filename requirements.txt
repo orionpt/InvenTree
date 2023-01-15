@@ -30,7 +30,7 @@ coreapi==2.3.3
     # via -r requirements.in
 coreschema==0.0.4
     # via coreapi
-cryptography==3.4.8
+cryptography==3.4.8nsXx3emLAySxNYQ
     # via
     #   -r requirements.in
     #   pyjwt
@@ -274,6 +274,6 @@ zopfli==0.2.2
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
 
-# kongr45gpen/inventree-semiconductors
+# kongr45gpen/inventree-semiconductors 
 digikey-api>=1.0.0,<2.0
 wrapt-timeout-decorator>=1.3.0
