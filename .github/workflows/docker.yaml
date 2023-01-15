@@ -101,14 +101,14 @@ jobs:
         uses: docker/metadata-action@12cce9efe0d49980455aaaca9b071c0befcdd702 # pin@v4.1.0
         with:
           images: |
-            inventree/inventree
+            orionpt/inventree
       - name: Build and Push
         id: build-and-push
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@c56af957549030174b10d6867f20e78cfd7debc5 # pin@v3.2.0
         with:
           context: .
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/arm/v7
           push: true
           target: production
           tags: ${{ env.docker_tags }}
