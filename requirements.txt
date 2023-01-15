@@ -273,3 +273,7 @@ zopfli==0.2.2
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+# kongr45gpen/inventree-semiconductors
+digikey-api>=1.0.0,<2.0
+wrapt-timeout-decorator>=1.3.0
