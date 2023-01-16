@@ -62,7 +62,7 @@ jobs:
         uses: docker/metadata-action@12cce9efe0d49980455aaaca9b071c0befcdd702 # pin@v4.1.0
         with:
           images: |
-            inventree/inventree
+            orionpt/inventree
       - name: Build and Push
         id: build-and-push
         if: github.event_name != 'pull_request'
@@ -73,7 +73,7 @@ jobs:
           images: orionpt/inventree
           push: true
           target: production
-          tags: ${{ env.docker_tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             commit_hash=${{ env.git_commit_hash }}
             commit_date=${{ env.git_commit_date }}
