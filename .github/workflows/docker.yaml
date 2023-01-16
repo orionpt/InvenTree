@@ -39,9 +39,7 @@ jobs:
         with:
           images: orionpt/inventree
           # generate Docker tags based on the following events/attributes
-          tags: |
-            type=schedule
-            type=ref,event=tag
+          tags: ${{ env.docker_tags }}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -63,7 +61,6 @@ jobs:
           platforms: linux/arm/v7
           push: true
           target: production
-          tags: ${{ env.docker_tags }}
           build-args: |
             commit_hash=${{ env.git_commit_hash }}
 
