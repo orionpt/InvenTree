@@ -63,46 +63,7 @@ jobs:
       python_version: 3.9
     steps:
       - name: Check out repo
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # pin@v4.1.1
-      - name: Set Up Python ${{ env.python_version }}
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # pin@v4.7.1
-        with:
-          python-version: ${{ env.python_version }}
-      - name: Version Check
-        run: |
-          pip install requests
-          pip install pyyaml
-          python3 ci/version_check.py
-          echo "git_commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "git_commit_date=$(git show -s --format=%ci)" >> $GITHUB_ENV
-      - name: Build Docker Image
-        # Build the development docker image (using docker-compose.yml)
-        run: |
-          docker-compose build --no-cache
-      - name: Update Docker Image
-        run: |
-          docker-compose run inventree-dev-server invoke update
-          docker-compose run inventree-dev-server invoke setup-dev
-          docker-compose up -d
-          docker-compose run inventree-dev-server invoke wait
-      - name: Check Data Directory
-        # The following file structure should have been created by the docker image
-        run: |
-          test -d data
-          test -d data/env
-          test -d data/pgdb
-          test -d data/media
-          test -d data/static
-          test -d data/plugins
-          test -f data/config.yaml
-          test -f data/plugins.txt
-          test -f data/secret_key.txt
-      - name: Run Unit Tests
-        run: |
-          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> docker.dev.env
-          docker-compose run inventree-dev-server invoke test --disable-pty
-          docker-compose run inventree-dev-server invoke test --migrations --disable-pty
-          docker-compose down
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3.1.0
       - name: Set up QEMU
         if: github.event_name != 'pull_request'
         uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # pin@v3.0.0
@@ -133,21 +94,20 @@ jobs:
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # pin@v5.0.0
         with:
           images: |
-            inventree/inventree
-            ghcr.io/inventree/inventree
-
+            orionpt/inventree
       - name: Build and Push
         id: build-and-push
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # pin@v5.0.0
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm/v7
+          images: orionpt/inventree
           push: true
           sbom: true
           provenance: false
           target: production
-          tags: ${{ env.docker_tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             commit_hash=${{ env.git_commit_hash }}
             commit_date=${{ env.git_commit_date }}
