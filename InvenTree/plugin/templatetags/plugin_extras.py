@@ -1,4 +1,4 @@
-"""This module provides template tags for handeling plugins."""
+"""This module provides template tags for handling plugins."""
 
 from django import template
 from django.conf import settings as djangosettings
@@ -40,7 +40,7 @@ def plugin_settings_content(context, plugin, *args, **kwargs):
 
 @register.simple_tag()
 def mixin_enabled(plugin, key, *args, **kwargs):
-    """Is the mixin registerd and configured in the plugin?"""
+    """Is the mixin registered and configured in the plugin?"""
     return plugin.mixin_enabled(key)
 
 
@@ -85,11 +85,14 @@ def notification_settings_list(context, *args, **kwargs):
 @register.simple_tag(takes_context=True)
 def notification_list(context, *args, **kwargs):
     """List of all notification methods."""
-    return [{
-        'slug': a.METHOD_NAME,
-        'icon': a.METHOD_ICON,
-        'setting': a.GLOBAL_SETTING,
-        'plugin': a.plugin,
-        'description': a.__doc__,
-        'name': a.__name__
-    } for a in storage.liste]
+    return [
+        {
+            'slug': a.METHOD_NAME,
+            'icon': a.METHOD_ICON,
+            'setting': a.GLOBAL_SETTING,
+            'plugin': a.plugin,
+            'description': a.__doc__,
+            'name': a.__name__,
+        }
+        for a in storage.liste
+    ]

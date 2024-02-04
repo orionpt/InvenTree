@@ -14,9 +14,9 @@ from django.urls.base import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from plugin.helpers import GitStatus, get_git_log
+from plugin.helpers import get_git_log
 
-logger = logging.getLogger("inventree")
+logger = logging.getLogger('inventree')
 
 
 class MetaBase:
@@ -32,7 +32,7 @@ class MetaBase:
 
         Args:
             key (str): key for the value
-            old_key (str, optional): depreceated key - will throw warning
+            old_key (str, optional): deprecated key - will throw warning
             __default (optional): Value if nothing with key can be found. Defaults to None.
 
         Returns:
@@ -46,7 +46,11 @@ class MetaBase:
 
             # Sound of a warning if old_key worked
             if value:
-                warnings.warn(f'Usage of {old_key} was depreciated in 0.7.0 in favour of {key}', DeprecationWarning)
+                warnings.warn(
+                    f'Usage of {old_key} was depreciated in 0.7.0 in favour of {key}',
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
 
         # Use __default if still nothing set
         if (value is None) and __default:
@@ -92,21 +96,27 @@ class MetaBase:
 
     def plugin_config(self):
         """Return the PluginConfig object associated with this plugin."""
+        import InvenTree.ready
+
+        # Database contains no information yet - return None
+        if InvenTree.ready.isImportingData():
+            return None
+
         try:
             import plugin.models
 
             cfg, _ = plugin.models.PluginConfig.objects.get_or_create(
-                key=self.plugin_slug(),
-                name=self.plugin_name(),
+                key=self.plugin_slug(), name=self.plugin_name()
             )
         except (OperationalError, ProgrammingError):
+            cfg = None
+        except plugin.models.PluginConfig.DoesNotExist:
             cfg = None
 
         return cfg
 
     def is_active(self):
         """Return True if this plugin is currently active."""
-
         # Builtin plugins are always considered "active"
         if self.is_builtin:
             return True
@@ -115,8 +125,7 @@ class MetaBase:
 
         if config:
             return config.active
-        else:
-            return False  # pragma: no cover
+        return False  # pragma: no cover
 
 
 class MixinBase:
@@ -155,25 +164,38 @@ class MixinBase:
     def setup_mixin(self, key, cls=None):
         """Define mixin details for the current mixin -> provides meta details for all active mixins."""
         # get human name
-        human_name = getattr(cls.MixinMeta, 'MIXIN_NAME', key) if cls and hasattr(cls, 'MixinMeta') else key
+        human_name = (
+            getattr(cls.MixinMeta, 'MIXIN_NAME', key)
+            if cls and hasattr(cls, 'MixinMeta')
+            else key
+        )
 
         # register
-        self._mixinreg[key] = {
-            'key': key,
-            'human_name': human_name,
-        }
+        self._mixinreg[key] = {'key': key, 'human_name': human_name, 'cls': cls}
+
+    def get_registered_mixins(self, with_base: bool = False, with_cls: bool = True):
+        """Get all registered mixins for the plugin."""
+        mixins = getattr(self, '_mixinreg', None)
+        if not mixins:
+            return {}
+
+        mixins = mixins.copy()
+        # filter out base
+        if not with_base and 'base' in mixins:
+            del mixins['base']
+
+        # Do not return the mixin class if flas is set
+        if not with_cls:
+            return {
+                key: {k: v for k, v in mixin.items() if k != 'cls'}
+                for key, mixin in mixins.items()
+            }
+        return mixins
 
     @property
     def registered_mixins(self, with_base: bool = False):
         """Get all registered mixins for the plugin."""
-        mixins = getattr(self, '_mixinreg', None)
-        if mixins:
-            # filter out base
-            if not with_base and 'base' in mixins:
-                del mixins['base']
-            # only return dict
-            mixins = [a for a in mixins.values()]
-        return mixins
+        return self.get_registered_mixins(with_base=with_base)
 
 
 class VersionMixin:
@@ -265,8 +287,7 @@ class InvenTreePlugin(VersionMixin, MixinBase, MetaBase):
             pub_date = self.package.get('date')
         else:
             pub_date = datetime.fromisoformat(str(pub_date))
-        if not pub_date:
-            pub_date = _('No date found')  # pragma: no cover
+
         return pub_date
 
     @property
@@ -283,6 +304,7 @@ class InvenTreePlugin(VersionMixin, MixinBase, MetaBase):
     def license(self):
         """License of plugin."""
         return self._get_value('LICENSE', 'license')
+
     # endregion
 
     @classmethod
@@ -307,12 +329,12 @@ class InvenTreePlugin(VersionMixin, MixinBase, MetaBase):
 
     @classmethod
     def check_is_builtin(cls) -> bool:
-        """Determine if a particular plugin class is a 'builtin' plugin"""
+        """Determine if a particular plugin class is a 'builtin' plugin."""
         return str(cls.check_package_path()).startswith('plugin/builtin')
 
     @property
     def is_builtin(self) -> bool:
-        """Is this plugin is builtin"""
+        """Is this plugin is builtin."""
         return self.check_is_builtin()
 
     @classmethod
@@ -351,45 +373,46 @@ class InvenTreePlugin(VersionMixin, MixinBase, MetaBase):
     @classmethod
     def _get_package_metadata(cls):
         """Get package metadata for plugin."""
-
         # Try simple metadata lookup
         try:
             meta = metadata(cls.__name__)
         # Simple lookup did not work - get data from module
         except PackageNotFoundError:
-
             try:
                 meta = metadata(cls.__module__.split('.')[0])
             except PackageNotFoundError:
                 # Not much information we can extract at this point
                 return {}
 
+        try:
+            website = meta['Project-URL'].split(', ')[1]
+        except (ValueError, IndexError, AttributeError):
+            website = meta['Project-URL']
+
         return {
             'author': meta['Author-email'],
             'description': meta['Summary'],
             'version': meta['Version'],
-            'website': meta['Project-URL'],
-            'license': meta['License']
+            'website': website,
+            'license': meta['License'],
         }
 
     def define_package(self):
         """Add package info of the plugin into plugins context."""
-        package = self._get_package_metadata() if self._is_package else self._get_package_commit()
+        try:
+            package = (
+                self._get_package_metadata()
+                if self._is_package
+                else self._get_package_commit()
+            )
+        except TypeError:
+            package = {}
 
         # process date
         if package.get('date'):
             package['date'] = datetime.fromisoformat(package.get('date'))
 
-        # process sign state
-        sign_state = getattr(GitStatus, str(package.get('verified')), GitStatus.N)
-        if sign_state.status == 0:
-            self.sign_color = 'success'  # pragma: no cover
-        elif sign_state.status == 1:
-            self.sign_color = 'warning'
-        else:
-            self.sign_color = 'danger'  # pragma: no cover
-
         # set variables
         self.package = package
-        self.sign_state = sign_state
+
     # endregion

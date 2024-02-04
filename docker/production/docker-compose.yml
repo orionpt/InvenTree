@@ -38,7 +38,6 @@ services:
     # Database service
     # Use PostgreSQL as the database backend
     inventree-db:
-        container_name: inventree-db
         image: postgres:13
         expose:
             - ${INVENTREE_DB_PORT:-5432}/tcp
@@ -49,13 +48,12 @@ services:
             - POSTGRES_DB=${INVENTREE_DB_NAME:?You must provide the 'INVENTREE_DB_NAME' variable in the .env file}
         volumes:
             # Map 'data' volume such that postgres database is stored externally
-            - inventree_data:/var/lib/postgresql/data/
+            - inventree_data:/var/lib/postgresql/data/:z
         restart: unless-stopped
 
     # redis acts as database cache manager
     # only runs under the "redis" profile : https://docs.docker.com/compose/profiles/
     inventree-cache:
-        container_name: inventree-cache
         image: redis:7.0
         depends_on:
             - inventree-db
@@ -70,9 +68,12 @@ services:
     # InvenTree web server service
     # Uses gunicorn as the web server
     inventree-server:
-        container_name: inventree-server
         # If you wish to specify a particular InvenTree version, do so here
         image: inventree/inventree:${INVENTREE_TAG:-stable}
+        # Only change this port if you understand the stack.
+        # If you change this you have to change:
+        # - the proxy settings (on two lines)
+        # - only change the exposed port - eg `1338:8000` if you want to expose the server on port 1338
         expose:
             - 8000
         depends_on:
@@ -81,12 +82,11 @@ services:
             - .env
         volumes:
             # Data volume must map to /home/inventree/data
-            - inventree_data:/home/inventree/data
+            - inventree_data:/home/inventree/data:z
         restart: unless-stopped
 
     # Background worker process handles long-running or periodic tasks
     inventree-worker:
-        container_name: inventree-worker
         # If you wish to specify a particular InvenTree version, do so here
         image: inventree/inventree:${INVENTREE_TAG:-stable}
         command: invoke worker
@@ -96,7 +96,7 @@ services:
             - .env
         volumes:
             # Data volume must map to /home/inventree/data
-            - inventree_data:/home/inventree/data
+            - inventree_data:/home/inventree/data:z
         restart: unless-stopped
 
     # nginx acts as a reverse proxy
@@ -105,7 +105,6 @@ services:
     # web requests are redirected to gunicorn
     # NOTE: You will need to provide a working nginx.conf file!
     inventree-proxy:
-        container_name: inventree-proxy
         image: nginx:stable
         depends_on:
             - inventree-server
@@ -117,9 +116,9 @@ services:
         volumes:
             # Provide nginx configuration file to the container
             # Refer to the provided example file as a starting point
-            - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+            - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro,z
             # nginx proxy needs access to static and media files
-            - inventree_data:/var/www
+            - inventree_data:/var/www:z
         restart: unless-stopped
 
 volumes:

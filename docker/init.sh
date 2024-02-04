@@ -1,6 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 # exit when any command fails
 set -e
+
+# Required to suppress some git errors further down the line
+if command -v git &> /dev/null; then
+    git config --global --add safe.directory /home/***
+fi
 
 # Create required directory structure (if it does not already exist)
 if [[ ! -d "$INVENTREE_STATIC_ROOT" ]]; then
@@ -45,9 +50,6 @@ if [[ -n "$INVENTREE_PY_ENV" ]]; then
 fi
 
 cd ${INVENTREE_HOME}
-
-# Collect translation file stats
-invoke translate-stats
 
 # Launch the CMD *after* the ENTRYPOINT completes
 exec "$@"

@@ -2,12 +2,11 @@
 {% load i18n %}
 {% load inventree_extras %}
 
-{% block label %}login{% endblock %}
-
+{% block label %}login{% endblock label %}
 
 {% block heading %}
 {% trans "Login Settings" %}
-{% endblock %}
+{% endblock heading %}
 
 {% block content %}
 
@@ -27,7 +26,6 @@
             <td colspan='4'></td>
         </tr>
         {% include "InvenTree/settings/setting.html" with key="LOGIN_ENABLE_REG" icon="fa-user-plus" %}
-        {% include "InvenTree/settings/setting.html" with key="LOGIN_ENABLE_SSO_REG" icon="fa-user-plus" %}
         {% include "InvenTree/settings/setting.html" with key="LOGIN_SIGNUP_MAIL_TWICE" icon="fa-at" %}
         {% include "InvenTree/settings/setting.html" with key="LOGIN_SIGNUP_PWD_TWICE" icon="fa-user-lock" %}
         {% include "InvenTree/settings/setting.html" with key="SIGNUP_GROUP" icon="fa-users" %}
@@ -37,8 +35,9 @@
             <td colspan='4'></td>
         </tr>
         {% include "InvenTree/settings/setting.html" with key="LOGIN_ENABLE_SSO" icon="fa-user-shield" %}
+        {% include "InvenTree/settings/setting.html" with key="LOGIN_ENABLE_SSO_REG" icon="fa-user-plus" %}
         {% include "InvenTree/settings/setting.html" with key="LOGIN_SIGNUP_SSO_AUTO" icon="fa-key" %}
     </tbody>
 </table>
 
-{% endblock %}
+{% endblock content %}
